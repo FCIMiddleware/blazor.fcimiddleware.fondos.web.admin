@@ -1,0 +1,128 @@
+﻿@page "/view-moneda/{Id:int}"
+@using System.Text.Json
+@using blazor.fcimiddleware.fondos.web.admin.Models.Shared
+@using blazor.fcimiddleware.fondos.web.admin.Models.V1.Monedas
+@using blazor.fcimiddleware.fondos.web.admin.Services.Monedas
+@inject NavigationManager navigationManager
+@inject IJSRuntime JsRuntime
+@inject IMonedaProxy monedaProxy
+
+<!-- Content Header (Page header) -->
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1>Monedas</h1>
+            </div>
+        </div>
+    </div><!-- /.container-fluid -->
+</section>
+
+<!-- Main content -->
+<section class="content">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card card-dark">
+                <div class="card-header">
+                    <h3 class="card-title"></h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <b>Moneda #@moneda.Id</b><br>
+                            <br>
+                            <b>Descripcion:</b> @moneda.Descripcion<br>
+                            <b>Codigo CAFCI:</b> @moneda.IdCAFCI<br>
+                            <b>Creado:</b> @moneda.CreatedDate<br>
+                            <b>Creado Por:</b> @moneda.CreatedBy
+                        </div>
+                        <div class="col-sm-6">
+                            <b></b><br>
+                            <br>
+                            <b>Anulado: </b> @if(moneda.IsDeleted)
+                            {
+                                <span class="badge bg-danger">Si</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">No</span>
+                            }<br>
+                            <b>Sincronizado: </b> @if(moneda.IsSincronized)
+                            {
+                                <span class="badge bg-success">Si</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning">No</span>
+                            }<br>
+                            <b>Modificado:</b> @moneda.LastModifiedDate<br>
+                            <b>Modificado Por:</b> @moneda.LastModifiedBy
+                        </div>
+                    </div>
+                </div>
+                <!-- /.card-body -->
+            </div>
+            <div class="row">
+                <div class="col-12">
+                    <button type="button" class="btn btn-dark" @onclick="OnReturn">Return</button>
+                </div>
+            </div>
+            <!-- /.card -->
+        </div>
+    </div>
+</section>
+<!-- /.content -->
+
+@code {
+    private Moneda moneda { get; set; } = new Moneda();
+    [Parameter]
+    public int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        GetByIdMonedaRequest getByIdMonedaRequest = new GetByIdMonedaRequest() { Id = Id };
+        var result = await monedaProxy.GetById(getByIdMonedaRequest);
+
+        if (result.IsSuccessStatusCode)
+        {
+            moneda = await getById(result);
+        }
+        else
+        {
+            var badRequest = await getBadRequest(result);
+            await JsRuntime.ToastrSuccess(badRequest.Message, "Detallar Moneda");
+        }
+    }
+
+    private void OnReturn()
+    {
+        navigationManager.NavigateTo("/monedas");
+    }
+
+    private async Task<Moneda> getById(HttpResponseMessage result)
+    {
+        var data = JsonSerializer.Deserialize<Moneda>(
+                await result.Content.ReadAsStringAsync(),
+                new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    }
+            );
+
+        return data;
+    }
+
+    private async Task<BadRequest> getBadRequest(HttpResponseMessage result)
+    {
+        var badRequest = JsonSerializer.Deserialize<BadRequest>(
+                    await result.Content.ReadAsStringAsync(),
+                    new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        }
+                );
+
+        return badRequest;
+    }
+
+}

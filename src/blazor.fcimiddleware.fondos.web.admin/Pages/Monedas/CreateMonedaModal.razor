@@ -1,0 +1,119 @@
+﻿@using System.Text.Json
+@using blazor.fcimiddleware.fondos.web.admin.Models.Shared
+@using blazor.fcimiddleware.fondos.web.admin.Models.V1.Monedas
+@using blazor.fcimiddleware.fondos.web.admin.Services.Monedas
+
+@inject IJSRuntime JsRuntime
+@inject IMonedaProxy monedaProxy
+
+<!-- Modal -->
+<div class="modal fade" id="createmonedamodal" tabindex="-1" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <EditForm Model="createMonedaRequest" OnValidSubmit="OnValidSubmit" class="form-horizontal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Moneda</h5>
+                <button type="button" class="close @OnProcess()" data-dismiss="modal" aria-label="Close" @onclick="OnCancel">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <DataAnnotationsValidator></DataAnnotationsValidator>
+                    <div class="form-group row">
+                    <label for="inputEmail3" class="col-sm-2 col-form-label">Descripcion</label>
+                        <div class="col-sm-10">
+                            <InputText id="descripcion" @bind-Value="createMonedaRequest.Descripcion" class="form-control"></InputText>
+                            <ValidationMessage For="@(()=>createMonedaRequest.Descripcion)"></ValidationMessage>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                    <label for="inputPassword3" class="col-sm-2 col-form-label">Id CAFCI</label>
+                        <div class="col-sm-10">
+                            <InputText id="idCAFCI" @bind-Value="createMonedaRequest.IdCAFCI" class="form-control"></InputText>
+                            <ValidationMessage For="@(()=>createMonedaRequest.IdCAFCI)"></ValidationMessage>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="offset-sm-2 col-sm-10">
+                            <div class="form-check">
+                                <InputCheckbox id="idCAFCI" class="form-check-input" @bind-Value="createMonedaRequest.IsSincronized" />
+                                <label class="form-check-label" for="idCAFCI">Sincroniza</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark @OnProcess()" data-dismiss="modal" @onclick="OnCancel">Cancel</button>
+                    <button type="submit" class="btn btn-dark float-right @OnProcess()">Send</button>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+
+@code {
+    public bool EstaProcesando { get; set; } = false;
+    [Parameter]
+    public EventCallback<bool> CambioConfirmacion { get; set; }
+    [Parameter]
+    public EventCallback<bool> ValidSubmit { get; set; }
+    [Parameter]
+    public bool ProcesandoComponentePadre { get; set; }
+
+    private CreateMonedaRequest createMonedaRequest = new CreateMonedaRequest();
+
+    protected override void OnParametersSet()
+    {
+        EstaProcesando = ProcesandoComponentePadre;
+    }
+
+    private string OnProcess()
+    {
+        return EstaProcesando ? "disabled" : "";
+    }
+
+    protected async Task ConfirmacionOnCambia(bool valor)
+    {
+        if (valor)
+        {
+            EstaProcesando = true;
+        }
+        await CambioConfirmacion.InvokeAsync(valor);
+    }
+
+    protected async Task OnValidSubmit()
+    {
+        EstaProcesando = true;
+        
+        var result = await monedaProxy.Create(createMonedaRequest);
+        if (result.IsSuccessStatusCode) {
+            await JsRuntime.ToastrSuccess("Se agrego exitosamente", "Crear Moneda");
+            createMonedaRequest = new CreateMonedaRequest();
+            await ValidSubmit.InvokeAsync(true);
+        }        
+        else {
+            var badRequest = await getBadRequest(result);
+            await JsRuntime.ToastrSuccess(badRequest.Message, "Crear Moneda");
+            EstaProcesando = false;
+        }
+    }
+
+    private void OnCancel()
+    {
+        createMonedaRequest = new CreateMonedaRequest();
+    }
+
+    private async Task<BadRequest> getBadRequest(HttpResponseMessage result)
+    {
+        var badRequest = JsonSerializer.Deserialize<BadRequest>(
+                    await result.Content.ReadAsStringAsync(),
+                    new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        }
+                );
+
+        return badRequest;
+    }
+}

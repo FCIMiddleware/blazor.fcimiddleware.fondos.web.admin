@@ -1,0 +1,44 @@
+﻿<!-- Modal -->
+<div class="modal fade" id="createpaismodal" tabindex="-1" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <EditForm Model="createPaisRequest" OnValidSubmit="OnValidSubmit" class="form-horizontal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Pais</h5>
+                    <button type="button" class="close @OnProcess()" data-dismiss="modal" aria-label="Close" @onclick="OnCancel">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <DataAnnotationsValidator></DataAnnotationsValidator>
+                    <div class="form-group row">
+                        <label for="inputEmail3" class="col-sm-2 col-form-label">Descripcion</label>
+                        <div class="col-sm-10">
+                            <InputText id="descripcion" @bind-Value="createPaisRequest.Descripcion" class="form-control"></InputText>
+                            <ValidationMessage For="@(()=>createPaisRequest.Descripcion)"></ValidationMessage>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="inputPassword3" class="col-sm-2 col-form-label">Id CAFCI</label>
+                        <div class="col-sm-10">
+                            <InputText id="idCAFCI" @bind-Value="createPaisRequest.IdCAFCI" class="form-control"></InputText>
+                            <ValidationMessage For="@(()=>createPaisRequest.IdCAFCI)"></ValidationMessage>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="offset-sm-2 col-sm-10">
+                            <div class="form-check">
+                                <InputCheckbox id="idCAFCI" class="form-check-input" @bind-Value="createPaisRequest.IsSincronized" />
+                                <label class="form-check-label" for="idCAFCI">Sincroniza</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark @OnProcess()" data-dismiss="modal" @onclick="OnCancel">Cancel</button>
+                    <button type="submit" class="btn btn-dark float-right @OnProcess()">Send</button>
+                </div>
+            </div>
+        </EditForm>
+    </div>
+</div>

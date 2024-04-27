@@ -1,0 +1,379 @@
+﻿@page "/monedas"
+@using System.Text.Json
+@using blazor.fcimiddleware.fondos.web.admin.Models.Shared
+@using blazor.fcimiddleware.fondos.web.admin.Models.V1.Monedas
+@using blazor.fcimiddleware.fondos.web.admin.Services.Monedas
+@using blazor.fcimiddleware.fondos.web.admin.Shared
+@inject NavigationManager navigationManager
+@inject IMonedaProxy monedaProxy
+@inject IJSRuntime JsRuntime
+
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1>Monedas</h1>
+            </div>
+        </div>
+    </div><!-- /.container-fluid -->
+</section>
+
+<section class="content">
+      <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <button type="button" class="btn btn-dark" @onclick="OnGoToCreate"><i class="fa fa-plus"></i> New</button>
+                        <button type="button" class="btn btn-dark" @onclick="OnGoToRefresh"><i class="fa fa-recycle"></i> Refresh</button>
+                        <h3 class="card-title"></h3>
+
+                        <div class="card-tools">
+                            <div class="input-group input-group-sm" style="width: 150px;">
+                                <input type="text" name="table_search" class="form-control float-right" placeholder="Search" @bind-value="_search">
+
+                                <div class="input-group-append">
+                                    <button type="submit" class="btn btn-default" @onclick="OnSearch">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- /.card-header -->
+                    <div class="card-body p-0">
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">#</th>
+                                    <th class ="text-center">
+                                        Descripcion
+                                        <div class="float-right">
+                                            <button type="button" class="btn btn-default" @onclick="OnChangeOrderDesc"><i class="fa @_orderDesc"></i></button>
+                                        </div>
+                                    </th>
+                                    <th class="text-center">
+                                        Id CAFCI
+                                        <div class="float-right">
+                                            <button type="button" class="btn btn-default" @onclick="OnChangeOrderCafci"><i class="fa @_orderCafci"></i></button>
+                                        </div>
+                                    </th>
+                                    <th class="text-center" style="width: 40px">Sincronizado</th>
+                                    <th class="text-center" style="width: 40px">Anulado</th>
+                                    <th style="width: 220px"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (isLoading)
+                                {
+                                    <tr>
+                                        <td colspan="5" align="center">
+                                            <div class="overlay dark">
+                                                <img style="width:50px" src="https://media.tenor.com/wpSo-8CrXqUAAAAi/loading-loading-forever.gif" />
+                                            </div>
+                                        </td>
+                                    </tr>
+                                } else
+                                {
+                                    @foreach(var item in listMoneda)
+                                    {
+                                        <tr>
+                                            <td class="text-center">@item.Id</td>
+                                            <td>@item.Descripcion</td>
+                                            <td>@item.IdCAFCI</td>
+                                            <td class="text-center">
+                                                @if (item.IsSincronized)
+                                                {
+                                                    <span class="badge bg-success">Si</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning">No</span>
+                                                }                                                
+                                            </td>
+                                            <td class="text-center">
+                                                @if(item.IsDeleted)
+                                                {
+                                                    <span class="badge bg-danger">Si</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-success">No</span>
+                                                }                                                
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="btn-group">
+                                                    <button type="button" class="btn btn-dark" @onclick="@(e => OnGoToView(item.Id))">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-dark @OnStatus(item.IsDeleted)" @onclick="@(e => OnGoToEdit(item.Id, item.IsDeleted))">
+                                                        <i class="fas fa-pencil-alt"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-dark @OnStatus(!item.IsDeleted)">
+                                                        <i class="fas fa-undo"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-dark @OnStatus(item.IsDeleted)" @onclick="@(e => OnGoToDelete(item.Id, item.IsDeleted))">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="card-footer clearfix">
+                        <ul class="pagination pagination-sm m-0 float-left">
+                            Total de registros: 
+                            <b>@_countRegister</b>
+                        </ul>
+                        <ul class="pagination pagination-sm m-0 float-right">
+                            <li class="page-item"><button class="page-link" @onclick="OnFirstPage">&laquo;</button></li>
+                            @for (int i = 0; i < _pageCount; i++)
+                            {
+                                var index = i+1;
+                                <li class="page-item">
+                                    <button class="page-link" @onclick="@(e => OnPageIndex(index))">
+                                        @index
+                                    </button>
+                                </li>
+                            }
+                            <li class="page-item"><button class="page-link" @onclick="OnLastPage">&raquo;</button></li>
+                        </ul>
+                        
+                    </div>
+                    <!-- /.card-body -->
+                </div>
+                <!-- /.card -->
+            </div>
+        </div>
+<!-- /.row -->
+    </div>
+</section>
+
+<DeleteConfirm ProcesandoComponentePadre="estaProcesando" CambioConfirmacion="ClickConfirmacionBorrado"></DeleteConfirm>
+<CreateMonedaModal ProcesandoComponentePadre="estaProcesando" ValidSubmit="CreateSubmit"></CreateMonedaModal>
+<ViewMonedaModal ProcesandoComponentePadre="estaProcesando" Id="1"></ViewMonedaModal>
+
+@code{
+    List<Moneda>? listMoneda = null;
+    bool isLoading;
+    int _pageIndex = 1;
+    int _countRegister = 1;
+    int _firstPage = 1;
+    int _lastPage = 1;
+    int _pageSize = 10;
+    int _pageCount = 1;
+    string _search = "";
+    string _sort = "";
+    string _orderDesc = "fa-angle-up";
+    string _orderCafci = "fa-angle-up";
+
+    //Para eliminar
+    private bool estaProcesando { get; set; } = false;
+    private int BorrarIdMoneda { get; set; }
+
+    //Para detallar
+    private int IdDetallar { get; set; }
+
+    private string OnStatus(bool isDelete)
+    {
+        return isDelete ? "disabled" : "";
+    }    
+
+    private void OnGoToEdit(int id, bool isDeleted)
+    {
+        if(!isDeleted)
+            navigationManager.NavigateTo($"/edit-moneda/{id}");
+    }
+
+    private void OnGoToUndo(int id, bool isDeleted)
+    {
+        if (!isDeleted)
+            navigationManager.NavigateTo($"/edit-moneda/{id}");
+    }
+
+    private async Task OnChangeOrderDesc()
+    {
+        _orderCafci = "fa-angle-up";
+        switch (_orderDesc)
+        {
+            case "fa-angle-up":
+                _orderDesc = "fa-angle-down";
+                _sort = "descripcionAsc";
+                break;
+            case "fa-angle-down":
+                _orderDesc = "fa-eraser";
+                _sort = "descripcionDesc";
+                break;
+            case "fa-eraser":
+                _orderDesc = "fa-angle-up";
+                _sort = "";
+                break;
+        }
+
+        var paginationRequest = new PaginationQueryRequest { PageIndex = _pageIndex, PageSize = _pageSize, Search = _search, Sort = _sort };
+        await LoadDataGrid(paginationRequest);
+    }
+
+    private async Task OnChangeOrderCafci()
+    {
+        _orderDesc = "fa-angle-up";
+        switch (_orderCafci)
+        {
+            case "fa-angle-up":
+                _orderCafci = "fa-angle-down";
+                _sort = "idCAFCIAsc";
+                break;
+            case "fa-angle-down":
+                _orderCafci = "fa-eraser";
+                _sort = "idCAFCIDesc";
+                break;
+            case "fa-eraser":
+                _orderCafci = "fa-angle-up";
+                _sort = "";
+                break;
+        }
+
+        var paginationRequest = new PaginationQueryRequest { PageIndex = _pageIndex, PageSize = _pageSize, Search = _search, Sort = _sort };
+        await LoadDataGrid(paginationRequest);
+    }
+
+    protected override async Task OnInitializedAsync(){        
+        var paginationRequest = new PaginationQueryRequest { PageIndex = _pageIndex, PageSize = _pageSize, Search = _search, Sort = _sort };
+        await LoadDataGrid(paginationRequest);
+    }
+
+    private async Task OnSearch()
+    {
+        var paginationRequest = new PaginationQueryRequest { PageIndex = _pageIndex, PageSize = _pageSize, Search = _search, Sort = _sort };
+        await LoadDataGrid(paginationRequest);
+    }
+
+    private async Task OnFirstPage()
+    {
+        _pageIndex = _firstPage;
+        var paginationRequest = new PaginationQueryRequest { PageIndex = _pageIndex, PageSize = _pageSize, Search = _search, Sort = _sort };
+        await LoadDataGrid(paginationRequest);
+    }
+
+    private async Task OnLastPage()
+    {
+        _pageIndex = _lastPage;
+        var paginationRequest = new PaginationQueryRequest { PageIndex = _pageIndex, PageSize = _pageSize, Search = _search, Sort = _sort };
+        await LoadDataGrid(paginationRequest);
+    }
+
+
+    private async Task OnPageIndex(int value)
+    {
+        _pageIndex = value;
+        var paginationRequest = new PaginationQueryRequest { PageIndex = _pageIndex, PageSize = _pageSize, Search = _search, Sort = _sort };
+        await LoadDataGrid(paginationRequest);
+    }
+
+    private async Task LoadDataGrid(PaginationQueryRequest request){
+        isLoading = true;
+        var result = await monedaProxy.Pagination(request);
+        if (result.IsSuccessStatusCode)
+        {
+            var data = JsonSerializer.Deserialize<PaginationQueryResponse<Moneda>>(
+                await result.Content.ReadAsStringAsync(),
+                new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    }
+            );
+            _countRegister = data.Count;
+            _firstPage = 1;
+            _lastPage = data.PageCount;
+            _pageCount = data.PageCount;
+            listMoneda = data.Data.ToList();
+        }
+
+        isLoading = false;
+    }
+
+    private async Task OnGoToRefresh()
+    {
+        _search = "";
+        _sort = "";
+        _orderDesc = "fa-angle-up";
+        _orderCafci = "fa-angle-up";
+        _pageIndex = 1;
+        _pageSize = 10;
+        var paginationRequest = new PaginationQueryRequest { PageIndex = _pageIndex, PageSize = _pageSize, Search = _search, Sort = _sort };
+        await LoadDataGrid(paginationRequest);
+    }
+
+    private async Task<BadRequest> getBadRequest(HttpResponseMessage result)
+    {
+        var badRequest = JsonSerializer.Deserialize<BadRequest>(
+                    await result.Content.ReadAsStringAsync(),
+                    new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        }
+                );
+
+        return badRequest;
+    }
+
+    #region "View"
+    private async Task OnGoToView(int id)
+    {
+        IdDetallar = id;
+        await JsRuntime.InvokeVoidAsync("ShowViewMonedaModal");
+        //navigationManager.NavigateTo($"/view-moneda/{id}");
+    }
+    #endregion
+
+    #region "Create"
+    private async Task OnGoToCreate()
+    {
+        await JsRuntime.InvokeVoidAsync("ShowCreateMonedaModal");
+        //navigationManager.NavigateTo("/create-moneda");
+    }
+
+    public async Task CreateSubmit()
+    {
+        await JsRuntime.InvokeVoidAsync("HideCreateMonedaModal");
+    }
+    #endregion
+
+    #region "Delete"
+        private async Task OnGoToDelete(int id, bool isDeleted)
+    {
+        if (!isDeleted)
+        {
+            BorrarIdMoneda = id;
+            await JsRuntime.InvokeVoidAsync("MostrarModalConfirmacionBorrado");
+        }
+    }
+
+    public async Task ClickConfirmacionBorrado(bool confirmado)
+    {
+        estaProcesando = true;
+        if (confirmado && BorrarIdMoneda != null)
+        {
+            GetByIdMonedaRequest getByIdMonedaRequest = new GetByIdMonedaRequest() { Id = BorrarIdMoneda };
+            var result = await monedaProxy.Delete(getByIdMonedaRequest);
+            if (result.IsSuccessStatusCode)
+            {
+                await JsRuntime.ToastrSuccess("Se elimino exitosamente", "Eliminar Moneda");
+                var paginationRequest = new PaginationQueryRequest { PageIndex = _pageIndex, PageSize = _pageSize, Search = _search, Sort = _sort };
+                await LoadDataGrid(paginationRequest);
+            }
+            else
+            {
+                var badRequest = await getBadRequest(result);
+                await JsRuntime.ToastrSuccess(badRequest.Message, "Eliminar Moneda");
+            }
+        }
+
+        estaProcesando = false;
+        await JsRuntime.InvokeVoidAsync("OcultarModalConfirmacionBorrado");
+    }
+    #endregion
+}

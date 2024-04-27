@@ -1,0 +1,162 @@
+﻿@using System.Text.Json
+@using blazor.fcimiddleware.fondos.web.admin.Models.Shared
+@using blazor.fcimiddleware.fondos.web.admin.Models.V1.Monedas
+@using blazor.fcimiddleware.fondos.web.admin.Services.Monedas
+
+@inject IJSRuntime JsRuntime
+@inject IMonedaProxy monedaProxy
+
+<!-- Modal -->
+<div class="modal fade" id="viewmonedamodal" tabindex="-1" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Moneda</h5>
+                    <button type="button" class="close @OnProcess()" data-dismiss="modal" aria-label="Close" @onclick="OnCancel">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                <div class="row">
+                    <div class="col-sm-6">
+                        <b>Moneda #@moneda.Id</b><br>
+                        <br>
+                        <b>Descripcion:</b> @moneda.Descripcion<br>
+                        <b>Codigo CAFCI:</b> @moneda.IdCAFCI<br>
+                        <b>Creado:</b> @moneda.CreatedDate<br>
+                        <b>Creado Por:</b> @moneda.CreatedBy
+                    </div>
+                    <div class="col-sm-6">
+                        <b></b><br>
+                        <br>
+                        <b>Anulado: </b> @if (moneda.IsDeleted)
+                        {
+                            <span class="badge bg-danger">Si</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-success">No</span>
+                        }<br>
+                        <b>Sincronizado: </b> @if (moneda.IsSincronized)
+                        {
+                            <span class="badge bg-success">Si</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning">No</span>
+                        }<br>
+                        <b>Modificado:</b> @moneda.LastModifiedDate<br>
+                        <b>Modificado Por:</b> @moneda.LastModifiedBy
+                    </div>
+                </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-dark @OnProcess()" data-dismiss="modal" @onclick="OnCancel">Cancel</button>
+                </div>
+            </div>
+    </div>
+</div>
+
+
+@code {
+    private Moneda moneda { get; set; } = new Moneda();
+    private int idMoneda { get; set; }
+    public bool EstaProcesando { get; set; } = false;
+    [Parameter]
+    public int Id { get; set; }
+    [Parameter]
+    public EventCallback<bool> CambioConfirmacion { get; set; }
+    [Parameter]
+    public EventCallback<bool> ValidSubmit { get; set; }
+    [Parameter]
+    public bool ProcesandoComponentePadre { get; set; }
+
+    private CreateMonedaRequest createMonedaRequest = new CreateMonedaRequest();
+
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        idMoneda = Id;
+        EstaProcesando = ProcesandoComponentePadre;
+    }
+
+    private string OnProcess()
+    {
+        return EstaProcesando ? "disabled" : "";
+    }
+
+    protected async Task ConfirmacionOnCambia(bool valor)
+    {
+        if (valor)
+        {
+            EstaProcesando = true;
+        }
+        await CambioConfirmacion.InvokeAsync(valor);
+    }
+
+    protected async Task OnValidSubmit()
+    {
+        EstaProcesando = true;
+
+        var result = await monedaProxy.Create(createMonedaRequest);
+        if (result.IsSuccessStatusCode)
+        {
+            await JsRuntime.ToastrSuccess("Se agrego exitosamente", "Crear Moneda");
+            createMonedaRequest = new CreateMonedaRequest();
+            await ValidSubmit.InvokeAsync(true);
+        }
+        else
+        {
+            var badRequest = await getBadRequest(result);
+            await JsRuntime.ToastrSuccess(badRequest.Message, "Crear Moneda");
+            EstaProcesando = false;
+        }
+    }
+
+    private void OnCancel()
+    {
+        createMonedaRequest = new CreateMonedaRequest();
+    }
+
+    private async Task<BadRequest> getBadRequest(HttpResponseMessage result)
+    {
+        var badRequest = JsonSerializer.Deserialize<BadRequest>(
+                    await result.Content.ReadAsStringAsync(),
+                    new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        }
+                );
+
+        return badRequest;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        GetByIdMonedaRequest getByIdMonedaRequest = new GetByIdMonedaRequest() { Id = idMoneda };
+        var result = await monedaProxy.GetById(getByIdMonedaRequest);
+
+        if (result.IsSuccessStatusCode)
+        {
+            moneda = await getById(result);
+        }
+        else
+        {
+            var badRequest = await getBadRequest(result);
+            await JsRuntime.ToastrSuccess(badRequest.Message, "Detallar Moneda");
+        }
+    }
+
+    private async Task<Moneda> getById(HttpResponseMessage result)
+    {
+        var data = JsonSerializer.Deserialize<Moneda>(
+                await result.Content.ReadAsStringAsync(),
+                new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    }
+            );
+
+        return data;
+    }
+}

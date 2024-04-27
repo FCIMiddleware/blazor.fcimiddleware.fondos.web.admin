@@ -1,0 +1,135 @@
+﻿@page "/paises"
+@using System.Text.Json
+@using blazor.fcimiddleware.fondos.web.admin.Models.Components.DataGrid
+@using blazor.fcimiddleware.fondos.web.admin.Models.Shared
+@using blazor.fcimiddleware.fondos.web.admin.Models.V1.Paises
+@using blazor.fcimiddleware.fondos.web.admin.Services.Paises
+@using blazor.fcimiddleware.fondos.web.admin.Shared
+
+@inject NavigationManager navigationManager
+@inject IPaisProxy paisProxy
+@inject IJSRuntime JsRuntime
+
+<section class="content-header">
+    <div class="container-fluid">
+        <div class="row mb-2">
+            <div class="col-sm-6">
+                <h1>Paises</h1>
+            </div>
+        </div>
+    </div><!-- /.container-fluid -->
+</section>
+
+<DataGridPais GridColumns="dataGridColumns" DataListPais="listData" OnToRefresh="OnGoToRefresh" OnToCreate="OnGoToCreate"></DataGridPais>
+<CreatePais ProcesandoComponentePadre="estaProcesando" ValidSubmit="OnValidSubmit" ValidObject="createPaisRequest" CancelSubmit="OnCancelSubmit"></CreatePais>
+
+@code {
+    PaginationQueryResponse<Pais>? listData = null;
+    private bool estaProcesando { get; set; } = false;
+    #region "Create"
+    CreatePaisRequest createPaisRequest { get; set; } = new CreatePaisRequest();
+    #endregion
+
+
+    private List<DataGridColumns> dataGridColumns = new List<DataGridColumns>
+    {
+        new DataGridColumns { Id = "Descripcion",Name="Descripcion",DataType="string",OrderBy=true},
+        new DataGridColumns { Id = "IdCAFCI",Name="Id CAFCI",DataType="string",OrderBy=true },
+        new DataGridColumns { Id = "IsSincronized",Name="Sincronizado",DataType="bool",OrderBy=false },
+        new DataGridColumns { Id = "IsDeleted",Name="Anulado",DataType="bool",OrderBy=false }
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var paginationRequest = new PaginationQueryRequest { PageIndex = 1, PageSize = 10, Search = "", Sort = "" };
+        await LoadDataGrid(paginationRequest);
+    }
+
+    private async Task LoadDataGrid(PaginationQueryRequest request)
+    {
+        //isLoading = true;
+        var result = await paisProxy.Pagination(request);
+        if (result.IsSuccessStatusCode)
+        {
+            var data = JsonSerializer.Deserialize<PaginationQueryResponse<Pais>>(
+                await result.Content.ReadAsStringAsync(),
+                new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    }
+            );
+            listData = data;
+        }
+        // isLoading = false;
+    }
+
+    private async Task OnGoToRefresh()
+    {
+        var paginationRequest = new PaginationQueryRequest { PageIndex = 1, PageSize = 10, Search = "", Sort = "" };
+        await LoadDataGrid(paginationRequest);
+    }
+
+    protected async Task OnGoToCreate()
+    {
+        await JsRuntime.InvokeVoidAsync("ShowCreatePaisModal");
+        Console.WriteLine("Abriendo Modal");
+    }
+
+    private void OnCancelSubmit(string action)
+    {
+        estaProcesando = true;
+        switch (action)
+        {
+            case CustomActions.Create:
+                createPaisRequest = new CreatePaisRequest();
+                break;
+            default:
+                break;
+        }
+        estaProcesando = false;
+    }
+
+    protected async Task OnValidSubmit(string action)
+    {
+        estaProcesando = true;
+        var result = new HttpResponseMessage();
+        switch (action)
+        {
+            case CustomActions.Create:
+
+                result = await paisProxy.Create(createPaisRequest);
+                
+                if (result.IsSuccessStatusCode)
+                {
+                    createPaisRequest = new CreatePaisRequest();
+                    await JsRuntime.InvokeVoidAsync("HideCreatePaisModal");
+                    await JsRuntime.ToastrSuccess("Se agrego exitosamente", "Crear Moneda");
+                    var paginationRequest = new PaginationQueryRequest { PageIndex = 1, PageSize = 10, Search = "", Sort = "" };
+                    await LoadDataGrid(paginationRequest);
+                }
+                else
+                {
+                    var badRequest = await getBadRequest(result);
+                    await JsRuntime.ToastrError(badRequest.Message, "Crear Moneda");
+                }
+                    
+                break;
+            default:
+                break;
+        }
+        estaProcesando = false;
+    }
+
+    private async Task<BadRequest> getBadRequest(HttpResponseMessage result)
+    {
+        var badRequest = JsonSerializer.Deserialize<BadRequest>(
+                    await result.Content.ReadAsStringAsync(),
+                    new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        }
+                );
+
+        return badRequest;
+    }
+}

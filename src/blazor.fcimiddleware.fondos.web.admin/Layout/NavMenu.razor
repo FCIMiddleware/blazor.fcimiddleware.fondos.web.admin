@@ -1,0 +1,161 @@
+﻿<!-- Main Sidebar Container -->
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <!-- Sidebar user panel (optional) -->
+        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+            <div class="image">
+                <img src="img/avatar5.png" class="img-circle elevation-2" alt="User Image">
+            </div>
+            <div class="info">
+                <a href="#" class="d-block">Marco Espagnac</a>
+            </div>
+        </div>
+
+    <!-- Sidebar Menu -->
+    <nav class="mt-2">
+        <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+            <!-- Add icons to the links using the .nav-icon class
+                 with font-awesome or any other icon font library -->
+            <li class="nav-item @Menu1" @onclick="@(e => OnOpenSubMenu("Menu1"))">
+                <a href="#" class="nav-link @MenuActivo1">
+                    <i class="nav-icon fas fa-sliders-h"></i>
+                    <p>
+                        Parametros Generales
+                        <i class="right fas fa-angle-left"></i>
+                    </p>
+                </a>
+                <ul class="nav nav-treeview">
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="monedas">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>Monedas</p>
+                        </NavLink>
+                    </li>
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="paises">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>Paises</p>
+                        </NavLink>
+                    </li>
+                </ul>
+            </li>
+
+            <li class="nav-item @Menu2" @onclick="@(e => OnOpenSubMenu("Menu2"))">
+                <a href="#" class="nav-link @MenuActivo2">
+                    <i class="nav-icon fas fa-briefcase"></i>
+                    <p>
+                        Parametros Fondos
+                        <i class="right fas fa-angle-left"></i>
+                    </p>
+                </a>
+                <ul class="nav nav-treeview">
+                    <li class="nav-item">
+                        <a href="#" class="nav-link active">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>Fondos</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>Clases</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>Condiciones</p>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+
+            <li class="nav-item @Menu3" @onclick="@(e => OnOpenSubMenu("Menu3"))">
+                <a href="#" class="nav-link @MenuActivo3">
+                    <i class="nav-icon fas fa-building"></i>
+                    <p>
+                        Estructura Comercial
+                        <i class="right fas fa-angle-left"></i>
+                    </p>
+                </a>
+                <ul class="nav nav-treeview">
+                    <li class="nav-item">
+                        <a href="#" class="nav-link active">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>Sociedad Gerente</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>Sociedad Depositaria</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="far fa-circle nav-icon"></i>
+                            <p>Agente Colocador</p>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            
+            <li class="nav-item">
+                <a href="#" class="nav-link">
+                    <i class="nav-icon fas fa-th"></i>
+                    <p>
+                        Simple Link
+                        <span class="right badge badge-danger">New</span>
+                    </p>
+                </a>
+            </li>
+        </ul>
+    </nav>
+        <!-- /.sidebar-menu -->
+    </div>
+    <!-- /.sidebar -->
+
+
+@code {
+
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    private bool menu1 = false;
+    private bool menu2 = false;
+    private bool menu3 = false;
+    private string? Menu1 => menu1 ? "menu-open" : null;
+    private string? Menu2 => menu2 ? "menu-open" : null;
+    private string? Menu3 => menu3 ? "menu-open" : null;
+    private string? MenuActivo1 => menu1 ? "active" : null;
+    private string? MenuActivo2 => menu2 ? "active" : null;
+    private string? MenuActivo3 => menu3 ? "active" : null;
+
+    private void OnOpenSubMenu(string entity)
+    {
+        switch (entity)
+        {
+            case "Menu1":
+                menu1 = true;
+                menu2 = false;
+                menu3 = false;
+            break;
+            case "Menu2":
+                menu1 = false;
+                menu2 = true;
+                menu3 = false;
+            break;
+            case "Menu3":
+                menu1 = false;
+                menu2 = false;
+                menu3 = true;
+            break;
+        }
+    }
+}
